@@ -117,9 +117,20 @@ use std::io;
     }
 
     fn play_round(deck: &mut Vec<Card>) -> bool{
+
+        if deck.len() == 0 {
+            return false;
+        }
+
         let mut guess = String::new();
-        println!("Red or black?");
-        io::stdin().read_line(&mut guess).expect("Failed to read line");
+        loop {
+            println!("Red or black?");
+            io::stdin().read_line(&mut guess).expect("Failed to read line");
+            if is_valid_input(&guess) {
+                break;
+            }
+            guess = String::new();
+        }
 
         let Some(card1) = draw_card(deck) else {
             println!("No more cards in the deck! Game over.");
@@ -134,11 +145,19 @@ use std::io;
         print_card(&card1);
 
         let mut guess = String::new();
-        println!("Higher or lower?");
-        io::stdin().read_line(&mut guess).expect("Failed to read line");
+        loop {
+            println!("Higher or lower?");
+            io::stdin().read_line(&mut guess).expect("Failed to read line");
+            if is_valid_input(&guess) {
+                break;
+            }
+            guess = String::new();
+        }
+        
+        
 
         let Some(card2) = draw_card(deck) else {
-            println!("No more cards in the deck! Game over.");
+            println!("No more cards in the deck!");
             return false;   
         };
 
@@ -150,11 +169,17 @@ use std::io;
         print_card(&card2);
 
         let mut guess = String::new();
-        println!("Inside or outside?");
-        io::stdin().read_line(&mut guess).expect("Failed to read line");
+        loop {
+            println!("Inside or outside?");
+            io::stdin().read_line(&mut guess).expect("Failed to read line");
+            if is_valid_input(&guess) {
+                break;
+            }
+            guess = String::new();
+        }
 
         let Some(card3) = draw_card(deck) else {
-            println!("No more cards in the deck! Game over.");
+            println!("No more cards in the deck!");
             return false;   
         };
 
@@ -166,16 +191,22 @@ use std::io;
         print_card(&card3);
 
         let mut guess = String::new();
-        println!("Guess the suit?");
-        io::stdin().read_line(&mut guess).expect("Failed to read line");
-
+        loop {
+            println!("Guess the suit?");
+            io::stdin().read_line(&mut guess).expect("Failed to read line");
+            if is_valid_input(&guess) {
+                break;
+            }
+            guess = String::new();
+        }
+        
         let Some(card4) = draw_card(deck) else {
-            println!("No more cards in the deck! Game over.");
+            println!("No more cards in the deck!");
             return false;   
         };
 
         if !check_suit(&card4, &guess) {
-            println!("Wrong suit! Game over.");
+            println!("Wrong suit!");
             return false;
         }
 
@@ -185,6 +216,17 @@ use std::io;
         true
     }
 
+    fn is_valid_input(guess: &str) -> bool {
+        let valid_guesses = ["red", "black", "inside", "outside", "higher", "lower", "spades", "hearts", "clubs", "diamonds"];
+        if valid_guesses.contains(&guess.trim().to_ascii_lowercase().as_str()) {
+            true
+        } else {
+            println!("Invalid guess.");
+            false
+        }
+    }
+            
+
 fn main() {
 
     let mut deck = create_deck();
@@ -192,9 +234,12 @@ fn main() {
     shuffle_deck(&mut deck);
 
     for _ in 0..51 {
-        if !play_round(&mut deck) {
+        if play_round(&mut deck) {
             break;
-        }     
+        }
+        if deck.len() == 0 {
+            println!("No more cards in the deck! Game over.");
+        }
     }
 
     println!("Remaining cards: {}", deck.len());
