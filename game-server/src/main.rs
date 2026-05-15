@@ -1,4 +1,11 @@
 use game_core::*;
+use std::sync::Arc;
+use std::sync::Mutex;
+use axum::{
+    routing::post,
+    Router,
+    extract::State
+};
 
 struct GameState {
     deck: Vec<Card>,
@@ -36,4 +43,17 @@ fn new_game() -> GameState {
     }
 }
 
-fn main() {}
+#[tokio::main]
+async fn main() {
+    let state = Arc::new(Mutex::new(new_game()));
+    let app = Router::new().route("/new-game", post(new_game_handler)).with_state(state);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn new_game_handler(State(state): State<Arc<Mutex<GameState>>>) -> &'static str {
+    let mut guard = state.lock().unwrap();
+    *guard = new_game();
+    "New game started"
+}
