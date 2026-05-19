@@ -8,6 +8,7 @@ use axum::{
     extract::Json
 };
 use serde::{Deserialize, Serialize};
+use tower_http::cors::CorsLayer;
 
 struct GameState {
     deck: Vec<Card>,
@@ -50,16 +51,22 @@ async fn main() {
     let app = Router::new()
         .route("/new-game", post(new_game_handler))
         .route("/guess", post(answer))
+        .layer(CorsLayer::permissive())
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn new_game_handler(State(state): State<Arc<Mutex<GameState>>>) -> &'static str {
+async fn new_game_handler(State(state): State<Arc<Mutex<GameState>>>) -> Json<GuessResponse> {
     let mut guard = state.lock().unwrap();
     *guard = new_game();
-    "New game started"
+    Json( GuessResponse {
+        correct: false,
+        card: "".to_string(),
+        step: "red_black".to_string(),
+        status: "in_progress".to_string(),
+    })
 }
 
 #[derive(Deserialize)]
@@ -82,7 +89,7 @@ async fn answer(State(state): State<Arc<Mutex<GameState>>>, request: Json<GuessR
             guard.status = CurrStatus::OutOfCards;
             return Json(GuessResponse {
                 correct: false,
-                card: "Deck empty".to_string(),
+                card: "deck_empty".to_string(),
                 step: "red_black".to_string(),
                 status: "out_of_cards".to_string(),
             });
@@ -97,14 +104,14 @@ async fn answer(State(state): State<Arc<Mutex<GameState>>>, request: Json<GuessR
                             correct: true,
                             card: card_to_string(&guard.card1.as_ref().unwrap()),
                             step: "high_low".to_string(),
-                            status: "InProgress".to_string(),
+                            status: "in_progress".to_string(),
                         });
                     } else {
                         return Json(GuessResponse{
                             correct: false,
                             card: card_to_string(&guard.card1.as_ref().unwrap()),
                             step: "red_black".to_string(),
-                            status: "InProgress".to_string(),
+                            status: "in_progress".to_string(),
                         });
                     }
 
@@ -117,7 +124,7 @@ async fn answer(State(state): State<Arc<Mutex<GameState>>>, request: Json<GuessR
                             correct: true,
                             card: card_to_string(&guard.card2.as_ref().unwrap()),
                             step: "in_out".to_string(),
-                            status: "InProgress".to_string(),
+                            status: "in_progress".to_string(),
                         });
                     } else {
                         guard.step = CurrStep::RedBlack;
@@ -125,7 +132,7 @@ async fn answer(State(state): State<Arc<Mutex<GameState>>>, request: Json<GuessR
                             correct: false,
                             card: card_to_string(&guard.card2.as_ref().unwrap()),
                             step: "red_black".to_string(),
-                            status: "InProgress".to_string(),
+                            status: "in_progress".to_string(),
                         });
                     }
 
@@ -138,7 +145,7 @@ async fn answer(State(state): State<Arc<Mutex<GameState>>>, request: Json<GuessR
                             correct: true,
                             card: card_to_string(&guard.card3.as_ref().unwrap()),
                             step: "suit".to_string(),
-                            status: "InProgress".to_string(),
+                            status: "in_progress".to_string(),
                         });
                     } else {
                         guard.step = CurrStep::RedBlack;
@@ -146,7 +153,7 @@ async fn answer(State(state): State<Arc<Mutex<GameState>>>, request: Json<GuessR
                             correct: false,
                             card: card_to_string(&guard.card3.as_ref().unwrap()),
                             step: "red_black".to_string(),
-                            status: "InProgress".to_string(),
+                            status: "in_progress".to_string(),
                         });
                     }
                 }
@@ -157,7 +164,7 @@ async fn answer(State(state): State<Arc<Mutex<GameState>>>, request: Json<GuessR
                             correct: true,
                             card: card_to_string(&card),
                             step: "suit".to_string(),
-                            status: "Won".to_string(),
+                            status: "won".to_string(),
                         });
                     } else {
                         guard.step = CurrStep::RedBlack;
@@ -165,7 +172,7 @@ async fn answer(State(state): State<Arc<Mutex<GameState>>>, request: Json<GuessR
                             correct: false,
                             card: card_to_string(&card),
                             step: "red_black".to_string(),
-                            status: "InProgress".to_string(),
+                            status: "in_progress".to_string(),
                         });
                     }
                 }
